@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux public-host verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: "true"
+      HOME: ${{ github.workspace }}/.cache/dev-env/home
+      XDG_CONFIG_HOME: ${{ github.workspace }}/.cache/dev-env/xdg-config
+      XDG_CACHE_HOME: ${{ github.workspace }}/.cache/dev-env/xdg-cache
+      XDG_DATA_HOME: ${{ github.workspace }}/.cache/dev-env/xdg-data
+      XDG_STATE_HOME: ${{ github.workspace }}/.cache/dev-env/xdg-state
+      TMPDIR: ${{ github.workspace }}/.cache/dev-env/tmp
+      BUN_AUTO_INSTALL: "0"
+      BUN_INSTALL_CACHE_DIR: ${{ github.workspace }}/.cache/dev-env/bun-cache
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Create private local environments
+        run: mkdir -p "$HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$TMPDIR" "$BUN_INSTALL_CACHE_DIR"
+
+      - name: Install locked development dependencies
+        run: bun install --frozen-lockfile --no-progress
+
+      - name: Prepare pinned public OpenCode host
+        run: bun run prepare:host
+
+      - name: Create test report directories
+        run: mkdir -p artifacts/feasibility artifacts/implementation
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Unit tests
+        run: bun run test:unit -- --reporter=junit --reporter-outfile=artifacts/implementation/unit.xml
+
+      - name: Public-host feasibility gate
+        run: bun run test:feasibility -- --reporter=junit --reporter-outfile=artifacts/repository-readiness/feasibility-ci.xml
+
+      - name: Public-host integration tests
+        run: bun run test:integration -- --reporter=junit --reporter-outfile=artifacts/implementation/integration.xml
+
+      - name: Build
+        run: bun run build
+
+      - name: Verify package consumer
+        run: bun run verify:package
+
+      - name: Upload diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: token-budget-ci-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            artifacts/implementation/*.xml
+            artifacts/implementation/runtime-*.json
+            artifacts/implementation/failure-*.json
+            artifacts/implementation/*-host-*.log
+            artifacts/implementation/package-failure.json
+            artifacts/corrections/runtime-*.json
+            artifacts/corrections/failure-*.json
+            artifacts/corrections/*-host-*.log
+            artifacts/corrections/package-*.json
+            artifacts/repository-readiness/*.json
+            artifacts/repository-readiness/*.xml
+            artifacts/feasibility/failure-*.json
+            artifacts/feasibility/runtime-*.json
+            artifacts/feasibility/host-*.log
+            artifacts/feasibility/plugin-*.ndjson

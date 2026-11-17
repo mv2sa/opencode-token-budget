@@ -1,0 +1,38 @@
+{
+  "name": "opencode-token-budget",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mv2sa/opencode-token-budget.git"
+  },
+  "files": ["dist"],
+  "exports": {
+    "./server": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "@opencode/plugin": "2.2.5",
+    "@opencode/schema": "2.2.5",
+    "effect": "4.0.6"
+  },
+  "scripts": {
+    "typecheck": "bun check --no-script",
+    "prepare:host": "bun run scripts/prepare-host.ts",
+    "test:unit": "bun test --timeout 30000 ./test/unit",
+    "test:integration": "bun test --timeout 30000 ./test/integration",
+    "test:feasibility": "bun test --timeout 30000 ./test/feasibility",
+    "build": "bun run scripts/build.ts",
+    "pack": "bun run scripts/pack.ts",
+    "verify:package": "bun run scripts/verify-package.ts"
+  },
+  "devDependencies": {
+    "@opencode/client": "2.2.5",
+    "@opencode/plugin": "2.2.5",
+    "@opencode/schema": "2.2.5",
+    "@opencode/sdk": "2.2.5",
+    "@types/bun": "1.4.3",
+    "effect": "4.0.6"
+  }
+}

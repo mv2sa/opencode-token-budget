@@ -1,0 +1,18 @@
+node_modules/
+.cache/
+dist/
+artifacts/
+
+# Local credentials and environment files.
+.env
+.env.*
+!.env.example
+.envrc
+.envrc.*
+*.env
+
+# Build outputs, local package archives, and logs.
+*.tsbuildinfo
+*.tgz
+*.tar.gz
+*.log
